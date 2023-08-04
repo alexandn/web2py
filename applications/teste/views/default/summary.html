@@ -1,0 +1,13 @@
+{{extend 'layout.html'}}
+<h2>
+    Resumo da solicitação:<br><br>
+</h2>
+<p>
+    <b>Mensagem solicitada: </b>{{=msg_atual}}
+</p>
+<p>
+    <b>Ação solicitada: </b>{{=action_atual}}
+</p>
+<p>
+    <b>Solicitado em: </b>{{=validade_atual.strftime("%d/%m/%Y, %H:%M")}} {{if msg_atual != 'SEM MENSAGEM ✅' or action_atual!='Bot continua atendendo ✅':}} (duração máxima: 48h){{pass}}
+</p>

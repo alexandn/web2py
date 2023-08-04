@@ -1,0 +1,93 @@
+# -*- coding: utf-8 -*-
+# -------------------------------------------------------------------------
+# This is a sample controller
+# this file is released under public domain and you can use without limitations
+# -------------------------------------------------------------------------
+
+def index():
+    form = FORM('',
+                H2('Mensagem de Emergência'),
+                INPUT(_type='radio',_name='emmsg',_value='1',value='1'),SPAN(' SEM MENSAGEM'),BR(),
+                INPUT(_type='radio',_name='emmsg',_value='2'),SPAN(' Nossos serviços estão com dificuldades em algumas regiões. Se for seu caso, informamos que nossas equipes já estão trabalhando para resolver o problema. Favor aguardar um pouco.'),BR(),
+                INPUT(_type='radio',_name='emmsg',_value='3'),SPAN(' Nossos sistemas estão sobrecarregados. Talvez alguns serviços estejam indisponíveis ou lentos. Informamos que nossas equipes já estão trabalhando para resolver o problema.'),BR(),
+                H2('Ação a ser executada'),
+                INPUT(_type='radio',_name='emaction',_value='1',value='1'),SPAN(' Bot continua atendendo'),BR(),
+                INPUT(_type='radio',_name='emaction',_value='2'),SPAN(' Transferir para atendimento humano'),BR(),
+                INPUT(_type='radio',_name='emaction',_value='3'),SPAN(' Encerrar ligação'),BR(),
+                INPUT(_type='submit'))
+    if form.process().accepted:
+        response.flash="Hello"
+        db.emergencymessage.insert(em_code=form.vars.emmsg,em_action=form.vars.emaction,em_validity=request.now)
+        redirect(URL('summary'))
+    return locals()
+
+def summary():
+    row = db(db.emergencymessage).select(db.emergencymessage.ALL, orderby=~db.emergencymessage.id, limitby=(0, 1)).last()
+    msg_atual='SEM MENSAGEM ✅'
+    if row.em_code==2:
+        msg_atual='Nossos serviços estão com dificuldades em algumas regiões. Se for seu caso, informamos que nossas equipes já estão trabalhando para resolver o problema. Favor aguardar um pouco'
+    if row.em_code==3:
+        msg_atual='Nossos sistemas estão sobrecarregados. Talvez alguns serviços estejam indisponíveis ou lentos. Informamos que nossas equipes já estão trabalhando para resolver o problema'
+    action_atual='Bot continua atendendo ✅'
+    if row.em_action==2:
+        action_atual='Transferir para atendimento humano 🛑'
+    if row.em_action==3:
+        action_atual='Encerrar ligação 🛑'
+    validade_atual=row.em_validity
+    return locals()
+
+def verifica_msg():
+    row = db(db.emergencymessage).select(db.emergencymessage.ALL, orderby=~db.emergencymessage.id, limitby=(0, 1)).last()
+    tempo_decorrido=request.now-row.em_validity
+    tempo_esgotado=tempo_decorrido.seconds>300
+    if tempo_esgotado:
+        return dict({'msg':1,'action':1})
+    return dict({'msg':row.em_code,'action':row.em_action})
+
+# ---- API (example) -----
+@auth.requires_login()
+def api_get_user_email():
+    if not request.env.request_method == 'GET': raise HTTP(403)
+    return response.json({'status':'success', 'email':auth.user.email})
+
+# ---- Smart Grid (example) -----
+@auth.requires_membership('admin') # can only be accessed by members of admin groupd
+def grid():
+    response.view = 'generic.html' # use a generic view
+    tablename = request.args(0)
+    if not tablename in db.tables: raise HTTP(403)
+    grid = SQLFORM.smartgrid(db[tablename], args=[tablename], deletable=False, editable=False)
+    return dict(grid=grid)
+
+# ---- Embedded wiki (example) ----
+def wiki():
+    auth.wikimenu() # add the wiki to the menu
+    return auth.wiki() 
+
+# ---- Action for login/register/etc (required for auth) -----
+def user():
+    """
+    exposes:
+    http://..../[app]/default/user/login
+    http://..../[app]/default/user/logout
+    http://..../[app]/default/user/register
+    http://..../[app]/default/user/profile
+    http://..../[app]/default/user/retrieve_password
+    http://..../[app]/default/user/change_password
+    http://..../[app]/default/user/bulk_register
+    use @auth.requires_login()
+        @auth.requires_membership('group name')
+        @auth.requires_permission('read','table name',record_id)
+    to decorate functions that need access control
+    also notice there is http://..../[app]/appadmin/manage/auth to allow administrator to manage users
+    """
+    return dict(form=auth())
+
+# ---- action to server uploaded static content (required) ---
+@cache.action()
+def download():
+    """
+    allows downloading of uploaded files
+    http://..../[app]/default/download/[filename]
+    """
+    return response.download(request, db)

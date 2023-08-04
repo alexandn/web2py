@@ -1,0 +1,9 @@
+Descrição do projeto
+
+Projeto de seleção de mensagem de emergência
+
+A rota ./default/index apresenta uma página HTML para seleção da mensagem de emergência.
+A rota ./default/summary apresenta uma página HTML com a última seleção usada (lembrando que ela fica no ar por 48h no máximo).
+
+A rota ./default/verifica_msg.json retorna um json para ser usado pelo bot para apresentar as mensagens e tomar ações.
+    No bot, é um GET. Ajustar timeout para 2000ms. Em caso de timeout ou erro, usar configuração 1,1 (sem mensagem, bot atende).
